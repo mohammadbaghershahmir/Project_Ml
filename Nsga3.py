@@ -128,4 +128,4 @@ pop = [creator.Individual(array) for array in combined_arrays]
 algorithms.eaMuPlusLambda(pop, toolbox, mu=5, lambda_=400, cxpb=0.7, mutpb=0.2, ngen=200, stats=None, halloffame=None)
 for idx, ind in enumerate(pop):
     print("Individual:", idx+1, "Genotype:", ind, "Fitness:", ind.fitness.values)
-    print("Accuracy:", ind.fitness.values[0])
+
