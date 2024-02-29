@@ -1,15 +1,16 @@
-from sklearn.datasets import load_breast_cancer
+from sklearn.datasets import fetch_openml
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 from deap import base, creator, tools,algorithms
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.impute import SimpleImputer
-data = load_breast_cancer()
+data = fetch_openml(name='ionosphere', version=1)
 X, y = data.data, data.target
 n_features = X.shape[1]
-n_arrays = 100
+n_arrays = 50
 random_arrays = [np.random.randint(2, size=n_features) for _ in range(n_arrays)]
 for i, array in enumerate(random_arrays):
     print(f"Random Array {i + 1}: {array}")
@@ -41,7 +42,7 @@ for i, array in enumerate(combined_arrays):
 df_original = pd.DataFrame(X, columns=data.feature_names)
 def create_new_dataset(array, original_dataset):
     new_dataset = original_dataset.copy()
-    zero_indices = np.where(array == 0)[0]  
+    zero_indices = np.flatnonzero(array == 0)  
     new_dataset.drop(new_dataset.columns[zero_indices], axis=1, inplace=True)
     return new_dataset
 new_datasets = []
@@ -125,7 +126,21 @@ toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
 ref_points = tools.uniform_reference_points(nobj=3, p=12)
 toolbox.register("select", tools.selNSGA3, ref_points=ref_points)
 pop = [creator.Individual(array) for array in combined_arrays]
-algorithms.eaMuPlusLambda(pop, toolbox, mu=5, lambda_=400, cxpb=0.7, mutpb=0.2, ngen=200, stats=None, halloffame=None)
+algorithms.eaMuPlusLambda(pop, toolbox, mu=2, lambda_=50, cxpb=0.7, mutpb=0.2, ngen=20, stats=None, halloffame=None)
 for idx, ind in enumerate(pop):
     print("Individual:", idx+1, "Genotype:", ind, "Fitness:", ind.fitness.values)
-
+    X_selected_features = create_new_dataset(ind, df_original)
+    X_train, X_test, y_train, y_test = train_test_split(X_selected_features, y, test_size=0.2, random_state=42)
+    
+    knn = KNeighborsClassifier()
+    knn.fit(X_train, y_train)
+    
+    y_pred = knn.predict(X_test)
+    
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred,average='macro')
+    recall = recall_score(y_test, y_pred,average='macro')
+    
+    print("Accuracy:", accuracy)
+    print("Precision:", precision)
+    print("Recall:", recall)
